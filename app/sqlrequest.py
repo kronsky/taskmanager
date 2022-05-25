@@ -3,7 +3,7 @@ import sqlite3
 import logging
 
 logger = logging.getLogger('taskmanager')
-handler = logging.FileHandler('Logs.txt')
+handler = logging.FileHandler('logs.txt')
 handler.setFormatter(logging.Formatter(fmt='[%(asctime)s: %(levelname)s] %(message)s'))
 logger.addHandler(handler)
 
