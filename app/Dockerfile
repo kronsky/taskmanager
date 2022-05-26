@@ -2,9 +2,7 @@ FROM python:alpine
 
 WORKDIR /app
 
-RUN pip install --upgrade pip
-
-RUN pip install pyTelegramBotAPI
+RUN pip install --upgrade pip && pip install pyTelegramBotAPI
 
 COPY . .
 
