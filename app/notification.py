@@ -6,9 +6,7 @@ from sqlrequest import get_tables, Task
 def notification():
     while True:
         now = int(time.time())
-        # цикл по всем таблицам
         for table in get_tables():
-            # если имя таблицы table*, то цикл по актуальным задачам
             if table[0][:5] == 'tasks':
                 userid = table[0][6:]
                 tasks = Task.get_deadlines(userid)
