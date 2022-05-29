@@ -1,2 +1,3 @@
-/app/taskmanager.db
 /app/logs.txt
+/docker-compose.yml
+/app/database/taskmanager.db
