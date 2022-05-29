@@ -2,8 +2,8 @@ FROM python:alpine
 
 WORKDIR /app
 
-RUN pip install --upgrade pip && pip install -r requirements.txt
-
 COPY . .
+
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 CMD [ "python", "main.py" ]
