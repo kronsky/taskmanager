@@ -10,7 +10,7 @@ logger.addHandler(handler)
 
 class DataConnection:
     def __init__(self):
-        self.db_name = 'db/taskmanager.db'
+        self.db_name = 'taskmanager.db'
 
     def __enter__(self):
         self.connection = sqlite3.connect(self.db_name, check_same_thread=False)
