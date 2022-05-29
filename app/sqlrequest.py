@@ -22,20 +22,6 @@ class DataConnection:
             logger.error('database error: ' + str(exc_val))
 
 
-def create_table():
-    with DataConnection() as connection:
-        cursor = connection.cursor()
-        cursor.execute("""SELECT count(name) FROM sqlite_master 
-                        WHERE type='table' AND name='users'
-                        """)
-        if cursor.fetchone()[0] != 1:
-            cursor.execute("""CREATE TABLE users(
-                        chatid integer,
-                        name text
-                    )""")
-        connection.commit()
-
-
 class User(object):
     def __init__(self, chatid, name):
         self.chatid = chatid
@@ -173,6 +159,20 @@ class Task(object):
             cursor = connection.cursor()
             cursor.execute(f"SELECT rowid, * FROM tasks_{str(chatid)} WHERE status = 'completed'")
             return cursor.fetchall()
+
+
+def create_table():
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("""SELECT count(name) FROM sqlite_master 
+                        WHERE type='table' AND name='users'
+                        """)
+        if cursor.fetchone()[0] != 1:
+            cursor.execute("""CREATE TABLE users(
+                        chatid integer,
+                        name text
+                    )""")
+        connection.commit()
 
 
 def get_tables():
