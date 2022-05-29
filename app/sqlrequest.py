@@ -47,10 +47,8 @@ class User(object):
             cursor.execute(f"SELECT chatid FROM users WHERE chatid = {self.chatid}")
             chat = cursor.fetchall()
             if not len(chat):
-                # добавляем пользователя
                 cursor.execute(f"INSERT INTO users (chatid, name)  VALUES  ({self.chatid},"
                                f" '{self.name}')")
-                # создаём ему таблицу тасков
                 cursor.execute(f"CREATE TABLE tasks_{self.chatid}(title text, description text,"
                                f" tag text, dt_create int, dt_start int, dt_deadline int,"
                                f" dt_begin int, dt_end int, reminder int, status text, runtime int)")
@@ -118,13 +116,11 @@ class Task(object):
             end = int(time.time())
             cursor.execute(f"UPDATE tasks_{chatid} SET dt_end = {end} WHERE rowid = {rowid}")
             cursor.execute(f"UPDATE tasks_{chatid} SET status = 'completed' WHERE rowid = {rowid}")
-
             cursor.execute(f"SELECT dt_begin FROM tasks_{str(chatid)} WHERE rowid = {rowid}")
             dt_begin = cursor.fetchall()
             cursor.execute(f"SELECT dt_end FROM tasks_{str(chatid)} WHERE rowid = {rowid}")
             dt_end = cursor.fetchall()
             runtime = int(dt_end[0][0]) - int(dt_begin[0][0])
-
             cursor.execute(f"UPDATE tasks_{chatid} SET runtime = {runtime} WHERE rowid = {rowid}")
             connection.commit()
 
