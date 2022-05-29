@@ -9,12 +9,11 @@ import time
 from sqlrequest import User, Task
 import sqlrequest
 
-# создание бота с хранилищем
+
 state_storage = StateMemoryStorage()
 bot = telebot.TeleBot(telegram_token, state_storage=state_storage)
 
 
-# хранилище бота
 class BotStates(StatesGroup):
     title = State()
     description = State()
@@ -26,7 +25,6 @@ class BotStates(StatesGroup):
     dt_deadline = State()
 
 
-# переводим дату из секунд с начала эпохи в человекопонятную
 def convert_time_from_timestamp(timestamp):
     if type(timestamp) == int:
         return time.strftime('%Y-%m-%d %H:%M', time.gmtime(timestamp))
@@ -34,7 +32,6 @@ def convert_time_from_timestamp(timestamp):
         return timestamp
 
 
-# кнопки выбора даты (сегодня, завтра, послезавтра)
 def date_button():
     today = datetime.now().date()
     tomorrow = today + timedelta(days=1)
@@ -47,7 +44,6 @@ def date_button():
     return menu
 
 
-# кнопки выбора времени
 def time_button():
     menu = types.ReplyKeyboardMarkup(resize_keyboard=True)
     b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18 =\
@@ -128,7 +124,6 @@ def get_completed_tasks(message):
 
 @bot.message_handler(commands=['statistic'])
 def get_statistic(message):
-    # рассчет среднего времени выполнения задачи
     runtimes = sqlrequest.Task.get_runtime(message.chat.id)
     if len(runtimes) != 0:
         timeslist = []
@@ -139,7 +134,6 @@ def get_statistic(message):
             runtime = timedelta(seconds=int(sum(timeslist) / len(timeslist)))
         except ZeroDivisionError:
             runtime = None
-        # отправка сообщения
         bot.send_message(message.chat.id, f'Статистика пользователя {message.from_user.first_name}:\n'
                                           f'=> количество активных задач: '
                                           f'{len(sqlrequest.Task.get_tasks(message.chat.id))}\n'
@@ -191,7 +185,6 @@ def query_handler(call):
     elif call.data[:3] == 'del':
         Task.del_task(call.message.chat.id, call.data[4:])
         bot.send_message(call.message.chat.id, 'Задача удалена')
-    # убираем кнопки
     bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id)
 
 
@@ -309,7 +302,6 @@ def get_dt_deadline(message):
     bot.delete_state(message.from_user.id, message.chat.id)
 
 
-# Ответы при значении фильтра False
 @bot.message_handler(state=BotStates.reminder, is_digit=False)
 def reminder_incorrect(message):
     bot.send_message(message.chat.id, 'Вы ввели не число, попробуйте еще раз')
@@ -339,7 +331,6 @@ def dt_deadline_incorrect(message):
                                       'или нажмите на кнопку')
 
 
-# кастомный фильтр на дату
 class IsDate(telebot.custom_filters.SimpleCustomFilter):
     key = 'is_date'
 
@@ -351,7 +342,6 @@ class IsDate(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
-# кастомный фильтр на время
 class IsTime(telebot.custom_filters.SimpleCustomFilter):
     key = 'is_time'
 
@@ -363,7 +353,6 @@ class IsTime(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
-# регистрация фильтров
 bot.add_custom_filter(custom_filters.StateFilter(bot))
 bot.add_custom_filter(custom_filters.IsDigitFilter())
 bot.add_custom_filter(IsDate())
