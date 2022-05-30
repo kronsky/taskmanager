@@ -28,12 +28,20 @@ class User(object):
         self.chatid = chatid
         self.name = name
 
+    @staticmethod
+    def is_user(chatid):
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT chatid FROM users WHERE chatid = {chatid}")
+            if len(cursor.fetchall()):
+                return True
+            else:
+                return False
+
     def add_user(self):
         with DataConnection() as connection:
             cursor = connection.cursor()
-            cursor.execute(f"SELECT chatid FROM users WHERE chatid = {self.chatid}")
-            chat = cursor.fetchall()
-            if not len(chat):
+            if not self.is_user(self.chatid):
                 cursor.execute(f"INSERT INTO users (chatid, name)  VALUES  ({self.chatid},"
                                f" '{self.name}')")
                 cursor.execute(f"CREATE TABLE tasks_{self.chatid}(title text, description text,"

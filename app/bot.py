@@ -70,15 +70,18 @@ def start(message):
 
 @bot.message_handler(commands=['tasks'])
 def get_tasks(message):
-    tasks = Task.get_tasks(message.chat.id)
-    markup = telebot.types.InlineKeyboardMarkup()
-    for task in tasks:
-        callback = 'get:' + str(task[0])
-        markup.add(telebot.types.InlineKeyboardButton(text=task[1], callback_data=callback))
-    if len(tasks) != 0:
-        bot.send_message(message.chat.id, text="Выберите задачу:", reply_markup=markup)
+    if not User.is_user(message.chat.id):
+        bot.send_message(message.chat.id, 'Введите команду /start')
     else:
-        bot.send_message(message.chat.id, 'Задач нет')
+        tasks = Task.get_tasks(message.chat.id)
+        markup = telebot.types.InlineKeyboardMarkup()
+        for task in tasks:
+            callback = 'get:' + str(task[0])
+            markup.add(telebot.types.InlineKeyboardButton(text=task[1], callback_data=callback))
+        if len(tasks) != 0:
+            bot.send_message(message.chat.id, text="Выберите задачу:", reply_markup=markup)
+        else:
+            bot.send_message(message.chat.id, 'Задач нет')
 
 
 def tasks_message(message, tasks):
@@ -98,53 +101,65 @@ def tasks_message(message, tasks):
 
 @bot.message_handler(commands=['all_tasks'])
 def get_tasks(message):
-    tasks = Task.get_all_tasks(message.chat.id)
-    if len(tasks) != 0:
-        tasks_message(message, tasks)
+    if not User.is_user(message.chat.id):
+        bot.send_message(message.chat.id, 'Введите команду /start')
     else:
-        bot.send_message(message.chat.id, 'Задач нет')
+        tasks = Task.get_all_tasks(message.chat.id)
+        if len(tasks) != 0:
+            tasks_message(message, tasks)
+        else:
+            bot.send_message(message.chat.id, 'Задач нет')
 
 
 @bot.message_handler(commands=['overdue_tasks'])
 def get_overdue_tasks(message):
-    tasks = Task.get_overdue_task(message.chat.id)
-    if len(tasks) != 0:
-        tasks_message(message, tasks)
+    if not User.is_user(message.chat.id):
+        bot.send_message(message.chat.id, 'Введите команду /start')
     else:
-        bot.send_message(message.chat.id, 'Задач нет')
+        tasks = Task.get_overdue_task(message.chat.id)
+        if len(tasks) != 0:
+            tasks_message(message, tasks)
+        else:
+            bot.send_message(message.chat.id, 'Задач нет')
 
 
 @bot.message_handler(commands=['completed'])
 def get_completed_tasks(message):
-    tasks = Task.get_completed_tasks(message.chat.id)
-    if len(tasks) != 0:
-        tasks_message(message, tasks)
+    if not User.is_user(message.chat.id):
+        bot.send_message(message.chat.id, 'Введите команду /start')
     else:
-        bot.send_message(message.chat.id, 'Задач нет')
+        tasks = Task.get_completed_tasks(message.chat.id)
+        if len(tasks) != 0:
+            tasks_message(message, tasks)
+        else:
+            bot.send_message(message.chat.id, 'Задач нет')
 
 
 @bot.message_handler(commands=['statistic'])
 def get_statistic(message):
-    runtimes = sqlrequest.Task.get_runtime(message.chat.id)
-    if len(runtimes) != 0:
-        timeslist = []
-        for runtime in runtimes:
-            if type(runtime[0]) is int:
-                timeslist.append(runtime[0])
-        try:
-            runtime = timedelta(seconds=int(sum(timeslist) / len(timeslist)))
-        except ZeroDivisionError:
-            runtime = None
-        bot.send_message(message.chat.id, f'Статистика пользователя {message.from_user.first_name}:\n'
-                                          f'=> количество активных задач: '
-                                          f'{len(sqlrequest.Task.get_tasks(message.chat.id))}\n'
-                                          f'=> количество выполненных задач: '
-                                          f'{len(sqlrequest.Task.get_completed_tasks(message.chat.id))}\n'
-                                          f'=> количество просроченных задач: '
-                                          f'{len(sqlrequest.Task.get_overdue_task(message.chat.id))}\n'
-                                          f'=> среднее время выполнения: {runtime}')
+    if not User.is_user(message.chat.id):
+        bot.send_message(message.chat.id, 'Введите команду /start')
     else:
-        bot.send_message(message.chat.id, 'У вас пока небыло ни одной задачи')
+        runtimes = sqlrequest.Task.get_runtime(message.chat.id)
+        if len(runtimes) != 0:
+            timeslist = []
+            for runtime in runtimes:
+                if type(runtime[0]) is int:
+                    timeslist.append(runtime[0])
+            try:
+                runtime = timedelta(seconds=int(sum(timeslist) / len(timeslist)))
+            except ZeroDivisionError:
+                runtime = None
+            bot.send_message(message.chat.id, f'Статистика пользователя {message.from_user.first_name}:\n'
+                                              f'=> количество активных задач: '
+                                              f'{len(sqlrequest.Task.get_tasks(message.chat.id))}\n'
+                                              f'=> количество выполненных задач: '
+                                              f'{len(sqlrequest.Task.get_completed_tasks(message.chat.id))}\n'
+                                              f'=> количество просроченных задач: '
+                                              f'{len(sqlrequest.Task.get_overdue_task(message.chat.id))}\n'
+                                              f'=> среднее время выполнения: {runtime}')
+        else:
+            bot.send_message(message.chat.id, 'У вас пока небыло ни одной задачи')
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -191,8 +206,11 @@ def query_handler(call):
 
 @bot.message_handler(commands=['add_task'])
 def add_task(message):
-    bot.set_state(message.from_user.id, BotStates.title, message.chat.id)
-    bot.send_message(message.chat.id, 'Введите заголовок задачи')
+    if not User.is_user(message.chat.id):
+        bot.send_message(message.chat.id, 'Введите команду /start')
+    else:
+        bot.set_state(message.from_user.id, BotStates.title, message.chat.id)
+        bot.send_message(message.chat.id, 'Введите заголовок задачи')
 
 
 @bot.message_handler(state="*", commands=['cancel'])
