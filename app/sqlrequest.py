@@ -2,6 +2,7 @@ import time
 import sqlite3
 import logging
 
+
 logger = logging.getLogger('taskmanager')
 handler = logging.FileHandler('logs.txt')
 handler.setFormatter(logging.Formatter(fmt='[%(asctime)s: %(levelname)s] %(message)s'))
@@ -178,7 +179,7 @@ def create_table():
 def get_tables():
     with DataConnection() as connection:
         cursor = connection.cursor()
-        cursor.execute('SELECT name from sqlite_master where type= "table"')
+        cursor.execute('SELECT name from sqlite_master WHERE type="table" AND name NOT LIKE "users"')
         return cursor.fetchall()
 
 

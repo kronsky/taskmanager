@@ -6,6 +6,7 @@ from telebot.handler_backends import State, StatesGroup
 from telebot.storage import StateMemoryStorage
 from datetime import datetime, timedelta
 import time
+import pytz
 from sqlrequest import User, Task
 import sqlrequest
 
@@ -296,7 +297,7 @@ def get_dt_deadline(message):
                 f"=> Дата и время конца срока: {data['dt_deadline']}")
         bot.send_message(message.chat.id, task, reply_markup=types.ReplyKeyboardRemove())
     Task.add_task(Task(message.chat.id, data['title'], data['description'], data['tag'],
-                  int(data['reminder']) * 60, int(time.time()),
+                  int(data['reminder']) * 60, int(datetime.now(tz=pytz.timezone('Europe/Moscow')).strftime("%s")),
                   int(data['dt_start'].timestamp()), int(data['dt_deadline'].timestamp()),
                   None, None, 'created', None))
     bot.delete_state(message.from_user.id, message.chat.id)

@@ -4,8 +4,9 @@ WORKDIR /app
 
 COPY . .
 
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
-RUN mkdir databasev
+RUN mkdir databasei
 
 CMD [ "python", "main.py" ]
