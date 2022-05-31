@@ -53,6 +53,10 @@ def time_button():
     return menu
 
 
+def not_user_message(chatid):
+    bot.send_message(chatid, 'Введите команду /start')
+
+
 @bot.message_handler(commands=['start'])
 def start(message):
     name = message.from_user.first_name
@@ -71,7 +75,7 @@ def start(message):
 @bot.message_handler(commands=['tasks'])
 def get_tasks(message):
     if not User.is_user(message.chat.id):
-        bot.send_message(message.chat.id, 'Введите команду /start')
+        not_user_message(message.chat.id)
     else:
         tasks = Task.get_tasks(message.chat.id)
         markup = telebot.types.InlineKeyboardMarkup()
@@ -102,7 +106,7 @@ def tasks_message(message, tasks):
 @bot.message_handler(commands=['all_tasks'])
 def get_tasks(message):
     if not User.is_user(message.chat.id):
-        bot.send_message(message.chat.id, 'Введите команду /start')
+        not_user_message(message.chat.id)
     else:
         tasks = Task.get_all_tasks(message.chat.id)
         if len(tasks) != 0:
@@ -114,7 +118,7 @@ def get_tasks(message):
 @bot.message_handler(commands=['overdue_tasks'])
 def get_overdue_tasks(message):
     if not User.is_user(message.chat.id):
-        bot.send_message(message.chat.id, 'Введите команду /start')
+        not_user_message(message.chat.id)
     else:
         tasks = Task.get_overdue_task(message.chat.id)
         if len(tasks) != 0:
@@ -126,7 +130,7 @@ def get_overdue_tasks(message):
 @bot.message_handler(commands=['completed'])
 def get_completed_tasks(message):
     if not User.is_user(message.chat.id):
-        bot.send_message(message.chat.id, 'Введите команду /start')
+        not_user_message(message.chat.id)
     else:
         tasks = Task.get_completed_tasks(message.chat.id)
         if len(tasks) != 0:
@@ -138,7 +142,7 @@ def get_completed_tasks(message):
 @bot.message_handler(commands=['statistic'])
 def get_statistic(message):
     if not User.is_user(message.chat.id):
-        bot.send_message(message.chat.id, 'Введите команду /start')
+        not_user_message(message.chat.id)
     else:
         runtimes = sqlrequest.Task.get_runtime(message.chat.id)
         if len(runtimes) != 0:
@@ -207,7 +211,7 @@ def query_handler(call):
 @bot.message_handler(commands=['add_task'])
 def add_task(message):
     if not User.is_user(message.chat.id):
-        bot.send_message(message.chat.id, 'Введите команду /start')
+        not_user_message(message.chat.id)
     else:
         bot.set_state(message.from_user.id, BotStates.title, message.chat.id)
         bot.send_message(message.chat.id, 'Введите заголовок задачи')
