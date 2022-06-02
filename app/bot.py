@@ -1,7 +1,6 @@
 import telebot
-from config import telegram_token
-from telebot import types
-from telebot import custom_filters
+from config import telegram_token, time_zone
+from telebot import types, custom_filters
 from telebot.handler_backends import State, StatesGroup
 from telebot.storage import StateMemoryStorage
 from datetime import datetime, timedelta
@@ -31,6 +30,10 @@ def convert_time_from_timestamp(timestamp):
         return time.strftime('%Y-%m-%d %H:%M', time.gmtime(timestamp))
     elif timestamp is None:
         return timestamp
+
+
+def unix_time_now():
+    return int(datetime.now(tz=pytz.timezone(time_zone)).strftime("%s"))
 
 
 def date_button():
@@ -201,10 +204,12 @@ def query_handler(call):
             bot.send_message(call.message.chat.id, 'Выполнение задачи уже было начато ранее!')
     elif call.data[:3] == 'end':
         if Task.get_status(call.message.chat.id, call.data[4:]) == 'begined':
-            Task.end_task(call.message.chat.id, call.data[4:])
+            Task.end_task(call.message.chat.id, call.data[4:], unix_time_now())
             bot.send_message(call.message.chat.id, 'Задача выполнена')
-        else:
-            bot.send_message(call.message.chat.id, 'Задача не была начата!')
+        elif Task.get_status(call.message.chat.id, call.data[4:]) == 'created':
+            Task.end_task(call.message.chat.id, call.data[4:], unix_time_now())
+            bot.send_message(call.message.chat.id, 'Задача была начала и сразу выполнена')
+
     elif call.data[:3] == 'del':
         Task.del_task(call.message.chat.id, call.data[4:])
         bot.send_message(call.message.chat.id, 'Задача удалена')
@@ -322,7 +327,7 @@ def get_dt_deadline(message):
                 f"=> Дата и время конца срока: {data['dt_deadline']}")
         bot.send_message(message.chat.id, task, reply_markup=types.ReplyKeyboardRemove())
     Task.add_task(Task(message.chat.id, data['title'], data['description'], data['tag'],
-                  int(data['reminder']) * 60, int(datetime.now(tz=pytz.timezone('Europe/Moscow')).strftime("%s")),
+                  int(data['reminder']) * 60, unix_time_now(),
                   int(data['dt_start'].timestamp()), int(data['dt_deadline'].timestamp()),
                   None, None, 'created', None))
     bot.delete_state(message.from_user.id, message.chat.id)

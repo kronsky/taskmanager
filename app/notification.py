@@ -1,13 +1,12 @@
 import time
-import pytz
-from datetime import datetime
 from bot import bot
+from bot import unix_time_now
 from sqlrequest import get_tables, Task
 
 
 def notification():
     while True:
-        now = int(datetime.now(tz=pytz.timezone('Europe/Moscow')).strftime("%s"))
+        now = unix_time_now()
         for table in get_tables():
             userid = table[0][6:]
             tasks = Task.get_deadlines(userid)

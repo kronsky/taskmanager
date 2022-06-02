@@ -105,18 +105,19 @@ class Task(object):
             connection.commit()
 
     @staticmethod
-    def end_task(chatid, rowid):
+    def end_task(chatid, rowid, end_time):
         with DataConnection() as connection:
             cursor = connection.cursor()
-            end = int(time.time())
-            cursor.execute(f"UPDATE tasks_{chatid} SET dt_end = {end} WHERE rowid = {rowid}")
+            cursor.execute(f"UPDATE tasks_{chatid} SET dt_end = {end_time} WHERE rowid = {rowid}")
+            cursor.execute(f"UPDATE tasks_{chatid} SET dt_begin = {end_time} WHERE rowid = {rowid}"
+                           f" AND dt_begin = 'None'")   # выполнение не начиналось
             cursor.execute(f"UPDATE tasks_{chatid} SET status = 'completed' WHERE rowid = {rowid}")
-            cursor.execute(f"SELECT dt_begin FROM tasks_{str(chatid)} WHERE rowid = {rowid}")
-            dt_begin = cursor.fetchall()
-            cursor.execute(f"SELECT dt_end FROM tasks_{str(chatid)} WHERE rowid = {rowid}")
-            dt_end = cursor.fetchall()
-            runtime = int(dt_end[0][0]) - int(dt_begin[0][0])
-            cursor.execute(f"UPDATE tasks_{chatid} SET runtime = {runtime} WHERE rowid = {rowid}")
+            # время выполнения:
+            cursor.execute(f"SELECT dt_begin, dt_end FROM tasks_{str(chatid)} WHERE rowid = {rowid}")
+            runtime = cursor.fetchall()
+            runtime = runtime[0][1] - runtime[0][0]
+            if runtime > 0:     # не учитываем дазачи завершенные сразу
+                cursor.execute(f"UPDATE tasks_{chatid} SET runtime = {runtime} WHERE rowid = {rowid}")
             connection.commit()
 
     @staticmethod
