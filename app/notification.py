@@ -1,7 +1,7 @@
 import time
 from bot import bot
 from bot import unix_time_now
-from sqlrequest import get_tables, Task
+from sqlrequests import get_tables, Task
 
 
 def notification():
