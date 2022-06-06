@@ -64,10 +64,10 @@ def get_tasks(chatid):
 
 
 def get_status(chatid, rowid):
-        with DataConnection() as connection:
-            cursor = connection.cursor()
-            cursor.execute(f"SELECT status FROM '{chatid}' WHERE rowid = {rowid}")
-            return cursor.fetchall()[0][0]
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT status FROM '{chatid}' WHERE rowid = {rowid}")
+        return cursor.fetchall()[0][0]
 
 
 def end_task(chatid, rowid, end_time):
