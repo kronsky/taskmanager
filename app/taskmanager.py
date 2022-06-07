@@ -1,17 +1,32 @@
 from datetime import datetime
+import sqlite3
 import pytz
 import logging
-import sqlrequests
 from config import time_zone
 
-logger = logging.getLogger('taskmanager')
+logger = logging.getLogger(__name__)
 handler = logging.FileHandler('logs.txt')
 handler.setFormatter(logging.Formatter(fmt='[%(asctime)s: %(levelname)s] %(message)s'))
 logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 def unix_time_now():
     return int(datetime.now(tz=pytz.timezone(time_zone)).strftime("%s"))
+
+
+class DataConnection:
+    def __init__(self):
+        self.db_name = 'database/taskmanager.db'
+
+    def __enter__(self):
+        self.connection = sqlite3.connect(self.db_name, check_same_thread=False)
+        return self.connection
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.connection.close()
+        if exc_val:
+            logger.error('database error: ' + str(exc_val))
 
 
 class Task:
@@ -38,10 +53,10 @@ class Task:
 
     @chatid.setter
     def chatid(self, chatid):
-        if type(chatid) == int:
-            self.__chatid = chatid
-        else:
-            raise ValueError('chatid not integer')
+        try:
+            self.__chatid = int(chatid)
+        except ValueError:
+            logger.critical('a non-numeric field chatid is entered')
 
     @property
     def reminder(self):
@@ -49,10 +64,10 @@ class Task:
 
     @reminder.setter
     def reminder(self, reminder):
-        if type(reminder) == int:
-            self.__reminder = reminder
-        else:
-            raise ValueError('reminder not integer')
+        try:
+            self.__reminder = int(reminder)
+        except ValueError:
+            logger.critical('a non-numeric field reminder is entered')
 
     @property
     def start(self):
@@ -60,10 +75,10 @@ class Task:
 
     @start.setter
     def start(self, start):
-        if type(start) == int:
-            self.__start = start
-        else:
-            raise ValueError('start not integer')
+        try:
+            self.__start = int(start)
+        except ValueError:
+            logger.critical('a non-numeric field start is entered')
 
     @property
     def deadline(self):
@@ -71,65 +86,143 @@ class Task:
 
     @deadline.setter
     def deadline(self, deadline):
-        if type(deadline) == int:
-            self.__deadline = deadline
-        else:
-            raise ValueError('deadline not integer')
+        try:
+            self.__deadline = int(deadline)
+        except ValueError:
+            logger.critical('a non-numeric field deadline is entered')
 
     @staticmethod
     def create_table(chatid):
-        sqlrequests.create_user_tasks_table(chatid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"""SELECT count(name) FROM sqlite_master 
+                                    WHERE type='table' AND name='{chatid}'""")
+            if cursor.fetchone()[0] != 1:
+                cursor.execute(f"""CREATE TABLE '{chatid}'(title text, description text,
+                               creation int, reminder int, start int, deadline int,
+                               begin int, end int, runtime int, status text)""")
+                connection.commit()
+                logger.info('added a new user table: ' + str(chatid))
 
     def write(self, chatid):
-        sqlrequests.write_task(self, chatid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"""INSERT INTO '{chatid}'
+                        (title, description, creation, reminder, start, 
+                        deadline, begin, end, runtime, status)  
+                        VALUES  ('{self.title}', '{self.description}',
+                        '{self.creation}', '{self.reminder}', '{self.start}', 
+                        '{self.deadline}', '{self.begin}', '{self.end}', 
+                        '{self.runtime}', '{self.status}')""")
+            logger.info(f'A new task has been created by the user: {chatid}')
+            connection.commit()
 
     @staticmethod
     def table_is(chatid):
-        if sqlrequests.get_tables_with_chatid(chatid):
-            return True
-        else:
-            return False
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{chatid}'")
+            if cursor.fetchall():
+                return True
+            else:
+                return False
 
     @staticmethod
     def get_tasks(chatid):
-        return sqlrequests.get_tasks(chatid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT rowid, * FROM '{chatid}' WHERE status <> 'completed'"
+                           f" and status <> 'overdue'")
+            return cursor.fetchall()
 
     @staticmethod
     def get_all_tasks(chatid):
-        return sqlrequests.get_all_tasks(chatid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT rowid, * FROM '{chatid}'")
+            return cursor.fetchall()
 
     @staticmethod
     def get_status(chatid, rowid):
-        return sqlrequests.get_status(chatid, rowid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT status FROM '{chatid}' WHERE rowid = {rowid}")
+            return cursor.fetchall()[0][0]
 
     @staticmethod
     def get_overdue_task(chatid):
-        return sqlrequests.get_overdue_task(chatid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT rowid, * FROM '{chatid}' WHERE status = 'overdue'")
+            return cursor.fetchall()
 
     @staticmethod
     def get_completed_tasks(chatid):
-        return sqlrequests.get_completed_tasks(chatid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT rowid, * FROM '{chatid}' WHERE status = 'completed'")
+            return cursor.fetchall()
 
     @staticmethod
     def get_deadlines(chatid):
-        return sqlrequests.get_deadlines(chatid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT title, reminder, start, deadline, rowid "
+                           f"FROM '{chatid}' WHERE status = 'created'")
+            return cursor.fetchall()
 
     @staticmethod
     def get_runtime(chatid):
-        return sqlrequests.get_runtime(chatid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT runtime FROM '{chatid}'")
+            return cursor.fetchall()
 
     @staticmethod
-    def begin(chaid, rowid):
-        return sqlrequests.begin_task(chaid, rowid, unix_time_now())
+    def begin(chatid, rowid):
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"UPDATE '{chatid}' SET begin = {unix_time_now()} WHERE rowid = {rowid}")
+            cursor.execute(f"UPDATE '{chatid}' SET status = 'begined' WHERE rowid = {rowid}")
+            connection.commit()
+        logger.info(f'the user {chatid} has started to perform the task {rowid}')
 
     @staticmethod
-    def end(chaid, rowid):
-        return sqlrequests.end_task(chaid, rowid, unix_time_now())
+    def end(chatid, rowid):
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            timenow = unix_time_now()
+            cursor.execute(f"UPDATE '{chatid}' SET end = {timenow} WHERE rowid = {rowid}")
+            cursor.execute(f"UPDATE '{chatid}' SET begin = {timenow} WHERE rowid = {rowid}"
+                           f" AND begin = 'None'")
+            cursor.execute(f"UPDATE '{chatid}' SET status = 'completed' WHERE rowid = {rowid}")
+            cursor.execute(f"SELECT begin, end FROM '{chatid}' WHERE rowid = {rowid}")
+            runtime = cursor.fetchall()
+            runtime = runtime[0][1] - runtime[0][0]
+            if runtime > 0:
+                cursor.execute(f"UPDATE '{chatid}' SET runtime = {runtime} WHERE rowid = {rowid}")
+            connection.commit()
+        logger.info(f'the user {chatid} has completed the task {rowid}')
 
     @staticmethod
-    def delete(chaid, rowid):
-        return sqlrequests.del_task(chaid, rowid)
+    def delete(chatid, rowid):
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"DELETE FROM '{chatid}' WHERE rowid = {rowid}")
+            connection.commit()
+        logger.info(f'the user {chatid} deleted the task {rowid}')
 
     @staticmethod
     def overdue_task(chatid, rowid):
-        return sqlrequests.overdue_task(chatid, rowid)
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"UPDATE '{chatid}' SET status = 'overdue' WHERE rowid = {rowid}")
+            connection.commit()
+        logger.info(f'the user {chatid} has expired the task {rowid}')
+
+
+def get_tables():
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute('SELECT name from sqlite_master WHERE type="table"')
+        return cursor.fetchall()
