@@ -224,5 +224,11 @@ class Task:
 def get_tables():
     with DataConnection() as connection:
         cursor = connection.cursor()
-        cursor.execute('SELECT name from sqlite_master WHERE type="table"')
+        cursor.execute("SELECT name from sqlite_master WHERE type='table'")
         return cursor.fetchall()
+
+
+def _drop_table(chatid):
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"DROP TABLE IF EXISTS '{chatid}'")
