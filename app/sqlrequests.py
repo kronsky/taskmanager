@@ -41,7 +41,7 @@ def write_task(task, chatid):
                     (title, description, creation, reminder, start, 
                     deadline, begin, end, runtime, status)  
                     VALUES  ('{task.title}', '{task.description}',
-                    '{task.reminder}', '{task.creation}', '{task.start}', 
+                    '{task.creation}', '{task.reminder}', '{task.start}', 
                     '{task.deadline}', '{task.begin}', '{task.end}', 
                     '{task.runtime}', '{task.status}')""")
         logger.info(f'Создана новая задача пользователем {chatid}')
@@ -63,6 +63,13 @@ def get_tasks(chatid):
         return cursor.fetchall()
 
 
+def get_all_tasks(chatid):
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT rowid, * FROM '{chatid}'")
+        return cursor.fetchall()
+
+
 def get_status(chatid, rowid):
     with DataConnection() as connection:
         cursor = connection.cursor()
@@ -70,16 +77,67 @@ def get_status(chatid, rowid):
         return cursor.fetchall()[0][0]
 
 
+def begin_task(chatid, rowid, begin_time):
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"UPDATE '{chatid}' SET begin = {begin_time} WHERE rowid = {rowid}")
+        cursor.execute(f"UPDATE '{chatid}' SET status = 'begined' WHERE rowid = {rowid}")
+        connection.commit()
+
+
 def end_task(chatid, rowid, end_time):
     with DataConnection() as connection:
         cursor = connection.cursor()
         cursor.execute(f"UPDATE '{chatid}' SET end = {end_time} WHERE rowid = {rowid}")
-        cursor.execute(f"UPDATE {chatid}' SET begin = {end_time} WHERE rowid = {rowid}"
-                       f" AND dt_begin = 'None'")
-        cursor.execute(f"UPDATE {chatid}' SET status = 'completed' WHERE rowid = {rowid}")
-        cursor.execute(f"SELECT dt_begin, dt_end FROM tasks_{str(chatid)} WHERE rowid = {rowid}")
+        cursor.execute(f"UPDATE '{chatid}' SET begin = {end_time} WHERE rowid = {rowid}"
+                       f" AND begin = 'None'")
+        cursor.execute(f"UPDATE '{chatid}' SET status = 'completed' WHERE rowid = {rowid}")
+        cursor.execute(f"SELECT begin, end FROM '{chatid}' WHERE rowid = {rowid}")
         runtime = cursor.fetchall()
         runtime = runtime[0][1] - runtime[0][0]
         if runtime > 0:
-            cursor.execute(f"UPDATE tasks_{chatid} SET runtime = {runtime} WHERE rowid = {rowid}")
+            cursor.execute(f"UPDATE '{chatid}' SET runtime = {runtime} WHERE rowid = {rowid}")
         connection.commit()
+
+
+def overdue_task(chatid, rowid):
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"UPDATE '{chatid}' SET status = 'overdue' WHERE rowid = {rowid}")
+        connection.commit()
+
+
+def del_task(chatid, rowid):
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"DELETE FROM '{chatid}' WHERE rowid = {rowid}")
+        connection.commit()
+
+
+def get_runtime(chatid):
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT runtime FROM '{chatid}'")
+        return cursor.fetchall()
+
+
+def get_deadlines(chatid):
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT title, reminder, dt_start, dt_deadline, rowid "
+                       f"FROM '{chatid}' WHERE status = 'created'")
+        return cursor.fetchall()
+
+
+def get_overdue_task(chatid):
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT rowid, * FROM '{chatid}' WHERE status = 'overdue'")
+        return cursor.fetchall()
+
+
+def get_completed_tasks(chatid):
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT rowid, * FROM '{chatid}' WHERE status = 'completed'")
+        return cursor.fetchall()

@@ -1,12 +1,11 @@
 import telebot
 
-from config import telegram_token, time_zone
+from config import telegram_token
 from telebot import types, custom_filters
 from telebot.handler_backends import State, StatesGroup
 from telebot.storage import StateMemoryStorage
 from datetime import datetime, timedelta
 import time
-import pytz
 from taskmanager import Task
 
 state_storage = StateMemoryStorage()
@@ -28,10 +27,6 @@ def convert_time_from_timestamp(timestamp):
         return time.strftime('%Y-%m-%d %H:%M', time.gmtime(timestamp))
     elif timestamp is None:
         return timestamp
-
-
-def unix_time_now():
-    return int(datetime.now(tz=pytz.timezone(time_zone)).strftime("%s"))
 
 
 def date_button():
@@ -67,7 +62,7 @@ def start(message):
     name = message.from_user.first_name
     bot.send_message(message.chat.id, text='Привет, ' + name +
                                            '!\nСписок команд:\n'
-                                           '/add_task - создать нову юзадачу\n'
+                                           '/add_task - создать новую задачу\n'
                                            '/cancel - отмена создания задачи\n'
                                            '/tasks - актуальные задачи\n'
                                            '/all_tasks - все задачи\n'
@@ -192,6 +187,84 @@ def get_tasks(message):
             bot.send_message(message.chat.id, 'Задач нет')
 
 
+def tasks_message(message, tasks):
+    for task in tasks:
+        if task[9] != 'None':
+            runtime = timedelta(seconds=task[9])
+        else:
+            runtime = 'None'
+        bot.send_message(message.chat.id,
+                         f"<b>{task[1]}\n{task[2]}</b>\n"
+                         f"Дата создания: <b>{convert_time_from_timestamp(task[3])}</b> \n"
+                         f"Дата начала выполнения: <b>{convert_time_from_timestamp(task[7])}</b> \n"
+                         f"Дата выполнения: <b>{convert_time_from_timestamp(task[8])}</b> \n"
+                         f"Время выполнения: <b>{runtime}</b>\n"
+                         f"Статус: <b>{task[10]}</b>", parse_mode='html')
+
+
+@bot.message_handler(commands=['all_tasks'])
+def get_tasks(message):
+    if not Task.table_is(message.chat.id):
+        message_about_no_table(message.chat.id)
+    else:
+        tasks = Task.get_all_tasks(message.chat.id)
+        if len(tasks) != 0:
+            tasks_message(message, tasks)
+        else:
+            bot.send_message(message.chat.id, 'Задач нет')
+
+
+@bot.message_handler(commands=['overdue_tasks'])
+def get_overdue_tasks(message):
+    if not Task.table_is(message.chat.id):
+        message_about_no_table(message.chat.id)
+    else:
+        tasks = Task.get_overdue_task(message.chat.id)
+        if len(tasks) != 0:
+            tasks_message(message, tasks)
+        else:
+            bot.send_message(message.chat.id, 'Задач нет')
+
+
+@bot.message_handler(commands=['completed'])
+def get_completed_tasks(message):
+    if not Task.table_is(message.chat.id):
+        message_about_no_table(message.chat.id)
+    else:
+        tasks = Task.get_completed_tasks(message.chat.id)
+        if len(tasks) != 0:
+            tasks_message(message, tasks)
+        else:
+            bot.send_message(message.chat.id, 'Задач нет')
+
+
+@bot.message_handler(commands=['statistic'])
+def get_statistic(message):
+    if not Task.table_is(message.chat.id):
+        message_about_no_table(message.chat.id)
+    else:
+        runtimes = Task.get_runtime(message.chat.id)
+        if len(runtimes) != 0:
+            timeslist = []
+            for runtime in runtimes:
+                if type(runtime[0]) is int:
+                    timeslist.append(runtime[0])
+            try:
+                runtime = timedelta(seconds=int(sum(timeslist) / len(timeslist)))
+            except ZeroDivisionError:
+                runtime = None
+            bot.send_message(message.chat.id, f'Статистика пользователя {message.from_user.first_name}:\n'
+                                              f'=> количество активных задач: '
+                                              f'{len(Task.get_tasks(message.chat.id))}\n'
+                                              f'=> количество выполненных задач: '
+                                              f'{len(Task.get_completed_tasks(message.chat.id))}\n'
+                                              f'=> количество просроченных задач: '
+                                              f'{len(Task.get_overdue_task(message.chat.id))}\n'
+                                              f'=> среднее время выполнения: {runtime}')
+        else:
+            bot.send_message(message.chat.id, 'У вас пока небыло ни одной задачи')
+
+
 @bot.callback_query_handler(func=lambda call: True)
 def query_handler(call):
     tasks = Task.get_tasks(call.message.chat.id)
@@ -223,12 +296,11 @@ def query_handler(call):
             bot.send_message(call.message.chat.id, 'Выполнение задачи уже было начато ранее!')
     elif call.data[:3] == 'end':
         if Task.get_status(call.message.chat.id, call.data[4:]) == 'begined':
-            Task.end(call.message.chat.id, call.data[4:], unix_time_now())
+            Task.end(call.message.chat.id, call.data[4:])
             bot.send_message(call.message.chat.id, 'Задача выполнена')
         elif Task.get_status(call.message.chat.id, call.data[4:]) == 'created':
-            Task.end(call.message.chat.id, call.data[4:], unix_time_now())
+            Task.end(call.message.chat.id, call.data[4:])
             bot.send_message(call.message.chat.id, 'Задача была начала и сразу выполнена')
-
     elif call.data[:3] == 'del':
         Task.delete(call.message.chat.id, call.data[4:])
         bot.send_message(call.message.chat.id, 'Задача удалена')

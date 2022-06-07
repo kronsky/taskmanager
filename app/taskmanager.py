@@ -1,6 +1,9 @@
 import time
+from datetime import datetime
+import pytz
 import logging
 import sqlrequests
+from config import time_zone
 
 logger = logging.getLogger('taskmanager')
 handler = logging.FileHandler('logs.txt')
@@ -8,12 +11,16 @@ handler.setFormatter(logging.Formatter(fmt='[%(asctime)s: %(levelname)s] %(messa
 logger.addHandler(handler)
 
 
+def unix_time_now():
+    return int(datetime.now(tz=pytz.timezone(time_zone)).strftime("%s"))
+
+
 class Task:
     def __init__(self, chatid, title, description, reminder, start, deadline):
         self.chatid = chatid
         self.title = title
         self.description = description
-        self.creation = int(time.time())
+        self.creation = unix_time_now()
         self.reminder = reminder
         self.start = start
         self.deadline = deadline
@@ -89,17 +96,33 @@ class Task:
         return sqlrequests.get_tasks(chatid)
 
     @staticmethod
+    def get_all_tasks(chatid):
+        return sqlrequests.get_all_tasks(chatid)
+
+    @staticmethod
     def get_status(chatid, rowid):
         return sqlrequests.get_status(chatid, rowid)
 
     @staticmethod
-    def begin(chaid, rowid):
-        pass
+    def get_overdue_task(chatid):
+        return sqlrequests.get_overdue_task(chatid)
 
     @staticmethod
-    def end(chaid, rowid, end_time):
-        pass
+    def get_completed_tasks(chatid):
+        return sqlrequests.get_completed_tasks(chatid)
+
+    @staticmethod
+    def get_runtime(chatid):
+        return sqlrequests.get_runtime(chatid)
+
+    @staticmethod
+    def begin(chaid, rowid):
+        return sqlrequests.begin_task(chaid, rowid, unix_time_now())
+
+    @staticmethod
+    def end(chaid, rowid):
+        return sqlrequests.end_task(chaid, rowid, unix_time_now())
 
     @staticmethod
     def delete(chaid, rowid):
-        pass
+        return sqlrequests.del_task(chaid, rowid)
