@@ -1,3 +1,4 @@
+import time
 import unittest
 from taskmanager import Task, get_tables, _drop_table
 
@@ -35,16 +36,20 @@ class TestTask(unittest.TestCase):
         Task.begin(1234, 1)
         Task.end(1234, 1)
         self.assertEqual(Task.get_status(1234, 1), 'completed')
-        self.assertTrue(type(Task.get_all_tasks(1234)[0][7]) != 'None')
+        self.assertTrue(type(Task.get_all_tasks(1234)[0][8]) != 'None')
+        self.assertTrue(type(Task.get_all_tasks(1234)[0][9]) != 'None')
 
     def test_overdue(self):
-        pass
+        Task.overdue_task(1234, 1)
+        self.assertEqual(Task.get_status(1234, 1), 'overdue')
 
     def test_runtime(self):
-        pass
+        Task.begin(1234, 1)
+        time.sleep(2)
+        Task.end(1234, 1)
+        self.assertEqual(Task.get_runtime(1234)[0][0], 2)
 
     def tearDown(self):
-        # self.task.delete(1234, 1)
         _drop_table('1234')
 
 
