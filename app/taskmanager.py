@@ -1,4 +1,3 @@
-import time
 from datetime import datetime
 import pytz
 import logging
@@ -112,6 +111,10 @@ class Task:
         return sqlrequests.get_completed_tasks(chatid)
 
     @staticmethod
+    def get_deadlines(chatid):
+        return sqlrequests.get_deadlines(chatid)
+
+    @staticmethod
     def get_runtime(chatid):
         return sqlrequests.get_runtime(chatid)
 
@@ -126,3 +129,7 @@ class Task:
     @staticmethod
     def delete(chaid, rowid):
         return sqlrequests.del_task(chaid, rowid)
+
+    @staticmethod
+    def overdue_task(chatid, rowid):
+        return sqlrequests.overdue_task(chatid, rowid)

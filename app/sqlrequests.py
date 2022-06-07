@@ -124,7 +124,7 @@ def get_runtime(chatid):
 def get_deadlines(chatid):
     with DataConnection() as connection:
         cursor = connection.cursor()
-        cursor.execute(f"SELECT title, reminder, dt_start, dt_deadline, rowid "
+        cursor.execute(f"SELECT title, reminder, start, deadline, rowid "
                        f"FROM '{chatid}' WHERE status = 'created'")
         return cursor.fetchall()
 
@@ -140,4 +140,11 @@ def get_completed_tasks(chatid):
     with DataConnection() as connection:
         cursor = connection.cursor()
         cursor.execute(f"SELECT rowid, * FROM '{chatid}' WHERE status = 'completed'")
+        return cursor.fetchall()
+
+
+def get_tables():
+    with DataConnection() as connection:
+        cursor = connection.cursor()
+        cursor.execute('SELECT name from sqlite_master WHERE type="table"')
         return cursor.fetchall()
