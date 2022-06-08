@@ -1,12 +1,12 @@
 import telebot
-
 from config import telegram_token
 from telebot import types, custom_filters
 from telebot.handler_backends import State, StatesGroup
 from telebot.storage import StateMemoryStorage
 from datetime import datetime, timedelta
+from taskmanager import Table, Task
 import time
-from taskmanager import Task
+import re
 
 state_storage = StateMemoryStorage()
 bot = telebot.TeleBot(telegram_token, state_storage=state_storage)
@@ -69,12 +69,12 @@ def start(message):
                                            '/overdue_tasks - просроченные задачи\n'
                                            '/completed - уже выполненные задачи\n'
                                            '/statistic - статистика')
-    Task.create_table(message.chat.id)
+    Table.create_table(message.chat.id)
 
 
 @bot.message_handler(commands=['add_task'])
 def add_task(message):
-    if not Task.table_is(message.chat.id):
+    if not Table.table_is(message.chat.id):
         message_about_no_table(message.chat.id)
     else:
         bot.set_state(message.from_user.id, BotStates.title, message.chat.id)
@@ -173,7 +173,7 @@ def get_deadline_time(message):
 
 @bot.message_handler(commands=['tasks'])
 def get_tasks(message):
-    if not Task.table_is(message.chat.id):
+    if not Table.table_is(message.chat.id):
         message_about_no_table(message.chat.id)
     else:
         tasks = Task.get_tasks(message.chat.id)
@@ -204,7 +204,7 @@ def tasks_message(message, tasks):
 
 @bot.message_handler(commands=['all_tasks'])
 def get_tasks(message):
-    if not Task.table_is(message.chat.id):
+    if not Table.table_is(message.chat.id):
         message_about_no_table(message.chat.id)
     else:
         tasks = Task.get_all_tasks(message.chat.id)
@@ -216,7 +216,7 @@ def get_tasks(message):
 
 @bot.message_handler(commands=['overdue_tasks'])
 def get_overdue_tasks(message):
-    if not Task.table_is(message.chat.id):
+    if not Table.table_is(message.chat.id):
         message_about_no_table(message.chat.id)
     else:
         tasks = Task.get_overdue_task(message.chat.id)
@@ -228,7 +228,7 @@ def get_overdue_tasks(message):
 
 @bot.message_handler(commands=['completed'])
 def get_completed_tasks(message):
-    if not Task.table_is(message.chat.id):
+    if not Table.table_is(message.chat.id):
         message_about_no_table(message.chat.id)
     else:
         tasks = Task.get_completed_tasks(message.chat.id)
@@ -240,7 +240,7 @@ def get_completed_tasks(message):
 
 @bot.message_handler(commands=['statistic'])
 def get_statistic(message):
-    if not Task.table_is(message.chat.id):
+    if not Table.table_is(message.chat.id):
         message_about_no_table(message.chat.id)
     else:
         runtimes = Task.get_runtime(message.chat.id)

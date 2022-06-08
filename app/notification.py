@@ -1,13 +1,12 @@
 import time
 from bot import bot
-from taskmanager import unix_time_now, Task
-from taskmanager import get_tables
+from taskmanager import unix_time_now, Table, Task
 
 
 def notification():
     while True:
         now = unix_time_now()
-        for table in get_tables():
+        for table in Table.get_tables():
             tasks = Task.get_deadlines(int(table[0]))
             for task in tasks:
                 time_notification = task[2] - task[1]

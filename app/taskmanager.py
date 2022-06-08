@@ -29,6 +29,44 @@ class DataConnection:
             logger.error('database error: ' + str(exc_val))
 
 
+class Table:
+    @staticmethod
+    def create_table(chatid):
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"""SELECT count(name) FROM sqlite_master 
+                                        WHERE type='table' AND name='{chatid}'""")
+            if cursor.fetchone()[0] != 1:
+                cursor.execute(f"""CREATE TABLE '{chatid}'(title text, description text,
+                                   creation int, reminder int, start int, deadline int,
+                                   begin int, end int, runtime int, status text)""")
+                connection.commit()
+                logger.info('added a new user table: ' + str(chatid))
+
+    @staticmethod
+    def table_is(chatid):
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{chatid}'")
+            if cursor.fetchall():
+                return True
+            else:
+                return False
+
+    @staticmethod
+    def get_tables():
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT name from sqlite_master WHERE type='table'")
+            return cursor.fetchall()
+
+    @staticmethod
+    def _drop_table(chatid):
+        with DataConnection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"DROP TABLE IF EXISTS '{chatid}'")
+
+
 class Task:
     def __init__(self, chatid, title, description, reminder, start, deadline):
         self.chatid = chatid
@@ -91,41 +129,15 @@ class Task:
         except ValueError:
             logger.critical('a non-numeric field deadline is entered')
 
-    @staticmethod
-    def create_table(chatid):
-        with DataConnection() as connection:
-            cursor = connection.cursor()
-            cursor.execute(f"""SELECT count(name) FROM sqlite_master 
-                                    WHERE type='table' AND name='{chatid}'""")
-            if cursor.fetchone()[0] != 1:
-                cursor.execute(f"""CREATE TABLE '{chatid}'(title text, description text,
-                               creation int, reminder int, start int, deadline int,
-                               begin int, end int, runtime int, status text)""")
-                connection.commit()
-                logger.info('added a new user table: ' + str(chatid))
-
     def write(self, chatid):
         with DataConnection() as connection:
             cursor = connection.cursor()
-            cursor.execute(f"""INSERT INTO '{chatid}'
-                        (title, description, creation, reminder, start, 
-                        deadline, begin, end, runtime, status)  
-                        VALUES  ('{self.title}', '{self.description}',
-                        '{self.creation}', '{self.reminder}', '{self.start}', 
-                        '{self.deadline}', '{self.begin}', '{self.end}', 
-                        '{self.runtime}', '{self.status}')""")
+            cursor.execute(f"INSERT INTO '{chatid}'(title, description, creation, reminder, start, "
+                           f"deadline, begin, end, runtime, status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                           (self.title, self.description, self.creation, self.reminder, self.start,
+                            self.deadline, self.begin, self.end, self.runtime, self.status))
             logger.info(f'A new task has been created by the user: {chatid}')
             connection.commit()
-
-    @staticmethod
-    def table_is(chatid):
-        with DataConnection() as connection:
-            cursor = connection.cursor()
-            cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{chatid}'")
-            if cursor.fetchall():
-                return True
-            else:
-                return False
 
     @staticmethod
     def get_tasks(chatid):
@@ -219,16 +231,3 @@ class Task:
             cursor.execute(f"UPDATE '{chatid}' SET status = 'overdue' WHERE rowid = {rowid}")
             connection.commit()
         logger.info(f'the user {chatid} has expired the task {rowid}')
-
-
-def get_tables():
-    with DataConnection() as connection:
-        cursor = connection.cursor()
-        cursor.execute("SELECT name from sqlite_master WHERE type='table'")
-        return cursor.fetchall()
-
-
-def _drop_table(chatid):
-    with DataConnection() as connection:
-        cursor = connection.cursor()
-        cursor.execute(f"DROP TABLE IF EXISTS '{chatid}'")

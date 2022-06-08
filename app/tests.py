@@ -1,13 +1,13 @@
 import time
 import unittest
-from taskmanager import Task, get_tables, _drop_table
+from taskmanager import Table, Task
 
 
 class TestTask(unittest.TestCase):
 
     def setUp(self):
         self.task = Task('1234', 'test', 'test task', 10, 1654516286, 1654516286)
-        self.task.create_table(1234)
+        Table.create_table(1234)
         self.task.write(1234)
 
     def test_add(self):
@@ -18,7 +18,7 @@ class TestTask(unittest.TestCase):
         self.assertEqual(self.task.start, 1654516286)
         self.assertEqual(self.task.deadline, 1654516286)
         self.assertEqual(self.task.status, 'created')
-        self.assertIn(('1234',), get_tables())
+        self.assertIn(('1234',), Table.get_tables())
         self.assertEqual(Task.get_tasks(1234)[0][0], 1)
         self.assertEqual(Task.get_tasks(1234)[0][5], 1654516286)
         self.assertEqual(Task.get_tasks(1234)[0][10], 'created')
@@ -50,7 +50,7 @@ class TestTask(unittest.TestCase):
         self.assertEqual(Task.get_runtime(1234)[0][0], 2)
 
     def tearDown(self):
-        _drop_table('1234')
+        Table._drop_table('1234')
 
 
 if __name__ == '__main__':
