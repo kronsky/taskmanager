@@ -6,7 +6,6 @@ from telebot.storage import StateMemoryStorage
 from datetime import datetime, timedelta
 from taskmanager import Table, Task
 import time
-import re
 
 state_storage = StateMemoryStorage()
 bot = telebot.TeleBot(telegram_token, state_storage=state_storage)
@@ -189,7 +188,7 @@ def get_tasks(message):
 
 def tasks_message(message, tasks):
     for task in tasks:
-        if task[9] != 'None':
+        if task[9]:
             runtime = timedelta(seconds=task[9])
         else:
             runtime = 'None'

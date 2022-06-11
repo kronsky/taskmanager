@@ -1,14 +1,8 @@
 from datetime import datetime
+from loguru import logger
 import sqlite3
 import pytz
-import logging
 from config import time_zone
-
-logger = logging.getLogger(__name__)
-handler = logging.FileHandler('logs.txt')
-handler.setFormatter(logging.Formatter(fmt='[%(asctime)s: %(levelname)s] %(message)s'))
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
 
 
 def unix_time_now():
